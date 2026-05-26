@@ -15,29 +15,50 @@ interface ProcessRegistryFile {
   entries: ProcessEntry[];
 }
 
+// Serialise mutations through a single in-process promise chain so two async
+// callers in the same bridge don't trample each other. Cross-process is
+// handled by writing atomically via a temp file + rename.
+let mutationQueue: Promise<unknown> = Promise.resolve();
+
+function mutate<T>(fn: () => Promise<T>): Promise<T> {
+  const next = mutationQueue.then(() => fn());
+  // Swallow the result for the queue; T is returned to the caller.
+  mutationQueue = next.then(
+    () => undefined,
+    () => undefined,
+  );
+  return next;
+}
+
 export async function registerProcess(entry: Omit<ProcessEntry, "startedAt"> & { startedAt?: string }): Promise<void> {
   await ensureHome();
-  const reg = await readRegistry();
-  reg.entries = reg.entries.filter((e) => isAlive(e.pid));
-  reg.entries.push({
-    pid: entry.pid,
-    startedAt: entry.startedAt ?? new Date().toISOString(),
-    appId: entry.appId,
-    label: entry.label,
+  await mutate(async () => {
+    const reg = await readRegistry();
+    reg.entries = reg.entries.filter((e) => isAlive(e.pid));
+    reg.entries.push({
+      pid: entry.pid,
+      startedAt: entry.startedAt ?? new Date().toISOString(),
+      appId: entry.appId,
+      label: entry.label,
+    });
+    await writeRegistry(reg);
   });
-  await writeRegistry(reg);
 }
 
 export async function unregisterProcess(pid: number): Promise<void> {
-  const reg = await readRegistry();
-  reg.entries = reg.entries.filter((e) => e.pid !== pid);
-  await writeRegistry(reg);
+  await mutate(async () => {
+    const reg = await readRegistry();
+    reg.entries = reg.entries.filter((e) => e.pid !== pid);
+    await writeRegistry(reg);
+  });
 }
 
 export async function listProcesses(): Promise<ProcessEntry[]> {
-  const reg = await pruneDead(await readRegistry());
-  await writeRegistry(reg);
-  return reg.entries;
+  return mutate(async () => {
+    const reg = await pruneDead(await readRegistry());
+    await writeRegistry(reg);
+    return reg.entries;
+  });
 }
 
 export async function findConflicts(appId?: string): Promise<ProcessEntry[]> {
@@ -82,7 +103,17 @@ async function readRegistry(): Promise<ProcessRegistryFile> {
 }
 
 async function writeRegistry(reg: ProcessRegistryFile): Promise<void> {
-  await fs.writeFile(PROCESSES_PATH, JSON.stringify(reg, null, 2) + "\n", "utf8");
+  // Atomic: write to a temp file in the same dir, then rename. rename(2) is
+  // atomic on POSIX within the same filesystem, so concurrent readers never
+  // see a half-written JSON.
+  const tmp = `${PROCESSES_PATH}.${process.pid}.${Date.now()}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(reg, null, 2) + "\n", "utf8");
+  try {
+    await fs.rename(tmp, PROCESSES_PATH);
+  } catch (err) {
+    await fs.rm(tmp, { force: true }).catch(() => undefined);
+    throw err;
+  }
 }
 
 async function pruneDead(reg: ProcessRegistryFile): Promise<ProcessRegistryFile> {

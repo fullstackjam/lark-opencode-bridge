@@ -1,7 +1,7 @@
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { createLogger } from "../log.js";
-import { findConflicts, killProcess, type ProcessEntry } from "./registry.js";
+import { findConflicts, isAlive, killProcess, type ProcessEntry } from "./registry.js";
 
 const log = createLogger("process");
 
@@ -47,6 +47,10 @@ export async function resolveConflicts(
       for (const e of conflicts) {
         if (await killProcess(e.pid)) killed.push(e.pid);
       }
+      // Wait for actual death before returning — otherwise the new bridge
+      // races the old one's WebSocket and Feishu events bounce between them.
+      // Poll up to 5s, then SIGKILL anything still alive.
+      await waitForDeath(killed, 5_000);
       log.info(`killed ${killed.length} old instance(s)`);
       return { action: "kill", killed };
     }
@@ -57,4 +61,22 @@ export async function resolveConflicts(
   } finally {
     rl.close();
   }
+}
+
+async function waitForDeath(pids: number[], timeoutMs: number): Promise<void> {
+  if (pids.length === 0) return;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (pids.every((p) => !isAlive(p))) return;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  // Force-kill anything that ignored SIGTERM.
+  for (const pid of pids) {
+    if (isAlive(pid)) {
+      log.warn(`pid=${pid} still alive after ${timeoutMs}ms — sending SIGKILL`);
+      await killProcess(pid, "SIGKILL");
+    }
+  }
+  // Brief grace for the OS to release the WS port.
+  await new Promise((r) => setTimeout(r, 200));
 }

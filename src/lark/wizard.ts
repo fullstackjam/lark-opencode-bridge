@@ -75,7 +75,12 @@ export async function runSetupWizard(opts: SetupOptions = {}): Promise<SetupResu
   const appSecret = result.client_secret;
   log.info(`registerApp ok appId=${appId}`);
 
-  const brand = result.user_info?.tenant_brand ?? domain;
+  // SDK's tenant_brand can be undefined or other strings; coerce to the two
+  // valid lark-cli values so we don't accidentally pass `"undefined"` as
+  // `--brand` and mis-tag the saved profile.
+  const rawBrand = result.user_info?.tenant_brand;
+  const brand: "feishu" | "lark" =
+    rawBrand === "lark" || rawBrand === "feishu" ? rawBrand : domain;
   const add = spawnSync(
     larkCli,
     [

@@ -110,8 +110,14 @@ ${argXml}
   </array>
   <key>RunAtLoad</key>
   <true/>
+  <!-- KeepAlive as a dict: only restart on crash (non-zero exit), NOT on
+       clean exit. Without this, launchctl stop would respawn within seconds
+       because launchd treats every exit as needing a restart. -->
   <key>KeepAlive</key>
-  <true/>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
   <key>StandardOutPath</key>
   <string>${home}/logs/service.stdout.log</string>
   <key>StandardErrorPath</key>
@@ -183,8 +189,9 @@ export async function ensureServiceInstalled(): Promise<void> {
 /** Install launchd/systemd unit if missing, then start the daemon. */
 export async function ensureServiceStarted(): Promise<void> {
   assertServicePlatform();
-  await ensureServiceInstalled();
-  // Refresh unit/plist so absolute binary paths stay current after upgrades.
+  // Always refresh the plist/unit so absolute binary paths stay current after
+  // upgrades. installService is now idempotent — it writes the file and
+  // tolerates "already loaded" from launchctl.
   await installService();
   const st = await getServiceStatus();
   if (!st.running) await startService();
@@ -214,7 +221,10 @@ export async function installService(): Promise<void> {
     const plistPath = launchAgentPath();
     await fs.mkdir(path.dirname(plistPath), { recursive: true });
     await fs.writeFile(plistPath, launchAgentPlist(binaries), "utf8");
-    run("launchctl", ["load", "-w", plistPath]);
+    // Unload-then-load so an in-place upgrade picks up the refreshed plist.
+    // Both ops are tolerated as "already in target state".
+    runTolerant("launchctl", ["unload", plistPath], /could not find|no such/i);
+    runTolerant("launchctl", ["load", "-w", plistPath], /already loaded/i);
     log.info(`installed launchd agent: ${plistPath}`);
     return;
   }
@@ -252,7 +262,15 @@ export async function uninstallService(): Promise<void> {
 export async function startService(): Promise<void> {
   assertServicePlatform();
   if (process.platform === "darwin") {
-    run("launchctl", ["start", LABEL]);
+    // Use load -w (idempotent when already loaded → ignore that error).
+    const plistPath = launchAgentPath();
+    const res = spawnSync("launchctl", ["load", "-w", plistPath], { encoding: "utf8" });
+    if (res.status !== 0) {
+      const err = (res.stderr || res.stdout || "").trim();
+      if (!/already loaded/i.test(err)) {
+        throw new Error(`launchctl load failed: ${err}`);
+      }
+    }
     return;
   }
   if (process.platform === "linux") {
@@ -265,7 +283,17 @@ export async function startService(): Promise<void> {
 export async function stopService(): Promise<void> {
   assertServicePlatform();
   if (process.platform === "darwin") {
-    run("launchctl", ["stop", LABEL]);
+    // `launchctl stop` alone would respawn due to KeepAlive. Unload the plist
+    // so the agent is truly gone; restart pairs this with load -w.
+    const plistPath = launchAgentPath();
+    const res = spawnSync("launchctl", ["unload", plistPath], { encoding: "utf8" });
+    if (res.status !== 0) {
+      const err = (res.stderr || res.stdout || "").trim();
+      // "Could not find specified service" is fine — already stopped.
+      if (!/could not find|no such/i.test(err)) {
+        throw new Error(`launchctl unload failed: ${err}`);
+      }
+    }
     return;
   }
   if (process.platform === "linux") {
@@ -323,4 +351,13 @@ function run(bin: string, args: string[]): void {
   if (res.status !== 0) {
     throw new Error(`${bin} ${args.join(" ")} failed: ${(res.stderr || res.stdout || "").trim()}`);
   }
+}
+
+/** Run a command and ignore non-zero exit when stderr matches `tolerable`. */
+function runTolerant(bin: string, args: string[], tolerable: RegExp): void {
+  const res = spawnSync(bin, args, { encoding: "utf8" });
+  if (res.status === 0) return;
+  const err = (res.stderr || res.stdout || "").trim();
+  if (tolerable.test(err)) return;
+  throw new Error(`${bin} ${args.join(" ")} failed: ${err}`);
 }

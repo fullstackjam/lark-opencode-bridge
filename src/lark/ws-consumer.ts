@@ -121,8 +121,15 @@ export class LarkWsConsumer {
     log.info("LarkChannel connected");
   }
 
-  stop(): void {
-    void this._channel?.disconnect();
+  async stop(): Promise<void> {
+    const ch = this._channel;
+    if (!ch) return;
+    this._channel = null;
+    try {
+      await ch.disconnect();
+    } catch (err) {
+      log.warn(`disconnect failed: ${(err as Error).message}`);
+    }
   }
 
   /** Manual WS reconnect (/reconnect). */

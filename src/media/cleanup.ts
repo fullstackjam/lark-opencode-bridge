@@ -6,6 +6,7 @@ import { MEDIA_DIR } from "../paths.js";
 const log = createLogger("media.cleanup");
 
 const DEFAULT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
 
 /**
  * Remove message attachment dirs under MEDIA_DIR older than maxAgeMs
@@ -34,4 +35,23 @@ export async function pruneOldMedia(maxAgeMs = DEFAULT_MAX_AGE_MS): Promise<numb
     // MEDIA_DIR may not exist yet
   }
   return removed;
+}
+
+/**
+ * Start a periodic media-cleanup loop. Runs once immediately, then every
+ * `intervalMs` (default 6h). Returns a stop function. Designed for the
+ * long-running daemon mode where startup-only pruning lets the dir grow
+ * unbounded between restarts.
+ */
+export function startMediaCleanupLoop(opts?: {
+  intervalMs?: number;
+  maxAgeMs?: number;
+}): () => void {
+  const intervalMs = opts?.intervalMs ?? DEFAULT_INTERVAL_MS;
+  const maxAgeMs = opts?.maxAgeMs ?? DEFAULT_MAX_AGE_MS;
+  void pruneOldMedia(maxAgeMs);
+  const timer = setInterval(() => void pruneOldMedia(maxAgeMs), intervalMs);
+  // Don't keep the event loop alive purely for cleanup.
+  if (typeof timer.unref === "function") timer.unref();
+  return () => clearInterval(timer);
 }

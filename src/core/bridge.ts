@@ -50,7 +50,7 @@ import {
 } from "../lark/types.js";
 import { ChatPendingQueue } from "./pending-queue.js";
 import { IdleWatchdog } from "./idle-watchdog.js";
-import { pruneOldMedia } from "../media/cleanup.js";
+import { startMediaCleanupLoop } from "../media/cleanup.js";
 import { registerProcess, unregisterProcess, findConflicts } from "../process/registry.js";
 import { resolveConflicts } from "../process/conflicts.js";
 
@@ -98,6 +98,7 @@ export class Bridge {
   private readonly docInflight = new Map<string, Promise<void>>();
   private readonly seenEventIds = new Set<string>();
   private keepalive: WsKeepalive | null = null;
+  private mediaCleanupStop: (() => void) | null = null;
   private stopping = false;
 
   constructor(private readonly opts: BridgeOptions) {
@@ -132,7 +133,7 @@ export class Bridge {
 
   async start(opts?: { force?: boolean }): Promise<void> {
     void pruneOldLogs();
-    void pruneOldMedia();
+    this.mediaCleanupStop = startMediaCleanupLoop();
     await this.sessions.load();
     await this.workspaces.load();
     if (this.server) await this.server.start();
@@ -173,7 +174,10 @@ export class Bridge {
     this.keepalive = new WsKeepalive({
       channel: () => this.consumer?.channel ?? null,
       onStale: () => {
-        log.warn("websocket stale — consider /reconnect if messages stop arriving");
+        log.warn("websocket stale — auto-reconnecting");
+        void this.consumer?.reconnect().catch((err) => {
+          log.error(`auto-reconnect failed: ${(err as Error).message}`);
+        });
       },
     });
     this.keepalive.start();
@@ -182,14 +186,24 @@ export class Bridge {
   }
 
   async stop(): Promise<void> {
+    // Mark stopping first so handleInbound + dispatchBatch short-circuit
+    // before any new opencode prompt is sent. (Without this, `q.drain()`
+    // below would happily fire a full LLM run during shutdown.)
     this.stopping = true;
     this.keepalive?.stop();
-    for (const q of this.pendingQueues.values()) await q.drain().catch(() => undefined);
-    this.consumer?.stop();
+    this.mediaCleanupStop?.();
+    // Drop queued messages instead of running them — drain() previously
+    // flushed each batch through dispatchBatch → opencode, blocking SIGTERM
+    // for minutes. Now we just clear the buffers; lost messages are fine on
+    // shutdown.
+    for (const q of this.pendingQueues.values()) q.discard();
+    // Cancel any in-flight runs before closing the WS, so the abort signal
+    // can propagate cleanly through promptAsync's fetch.
     for (const rt of this.perChat.values()) {
       rt.idleWatchdog?.stop();
       rt.abort?.abort();
     }
+    await this.consumer?.stop().catch(() => undefined);
     if (this.server) this.server.stop();
     await unregisterProcess(process.pid);
   }
@@ -1441,7 +1455,7 @@ export class Bridge {
       log.info(`stop button pressed for chat=${chatId}`);
       rt.abort.abort();
       const sessionId = this.sessions.getSession(chatId);
-      if (sessionId) void this.client.abortSession(sessionId);
+      if (sessionId) void this.client.abortSession(sessionId).catch(() => undefined);
     }
   }
 

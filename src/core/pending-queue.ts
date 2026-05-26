@@ -39,6 +39,21 @@ export class ChatPendingQueue {
     await this.flush();
   }
 
+  /**
+   * Drop all queued messages without firing onFlush. Used on shutdown where
+   * we'd rather lose a few user messages than block SIGTERM for minutes on
+   * a full opencode round-trip.
+   */
+  discard(): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    const n = this.pending.length;
+    this.pending = [];
+    if (n) log.info(`discarded ${n} pending message(s) on shutdown`);
+  }
+
   get pendingCount(): number {
     return this.pending.length;
   }
