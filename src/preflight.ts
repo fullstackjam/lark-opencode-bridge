@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { createLogger } from "./log.js";
 import { hasLarkAppConfigured } from "./lark/credentials.js";
+import { ensureLarkCli } from "./lark/lark-cli-install.js";
 
 const log = createLogger("preflight");
 
@@ -12,7 +13,7 @@ export interface PreflightResult {
 export interface PreflightOptions {
   larkCliPath?: string;
   opencodePath?: string;
-  /** When true, attempt `npm install -g lark-cli` if missing. */
+  /** When true, install `@larksuite/cli@latest` if `lark-cli` is missing. */
   installLarkCli?: boolean;
 }
 
@@ -21,27 +22,17 @@ export interface PreflightOptions {
  * human-readable issues; empty list means all checks passed.
  */
 export async function runPreflight(opts: PreflightOptions = {}): Promise<PreflightResult> {
-  const larkBin = opts.larkCliPath ?? "lark-cli";
   const opencodeBin = opts.opencodePath ?? "opencode";
   const issues: string[] = [];
 
-  let larkOk = checkBinary(larkBin, ["--version"]).ok;
-  if (!larkOk && opts.installLarkCli) {
-    log.info("lark-cli not found — attempting global install");
-    const install = spawnSync("npm", ["install", "-g", "lark-cli"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    if (install.status === 0) {
-      larkOk = checkBinary(larkBin, ["--version"]).ok;
-    } else {
-      issues.push(
-        `lark-cli missing and auto-install failed: ${(install.stderr || install.stdout || "").trim()}`,
-      );
-    }
-  }
-  if (!larkOk) {
-    issues.push(`lark-cli not found — install with: npm install -g lark-cli`);
+  const lark = await ensureLarkCli({
+    larkCliPath: opts.larkCliPath,
+    installIfMissing: opts.installLarkCli ?? false,
+    upgradeToLatest: false,
+    silent: true,
+  });
+  if (!lark.ok) {
+    issues.push(lark.error ?? "lark-cli not available");
   } else if (!(await hasLarkAppConfigured())) {
     issues.push(`飞书应用未配置 — 运行 lark-opencode-bridge run 进入扫码向导`);
   }

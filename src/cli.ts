@@ -146,7 +146,6 @@ export async function runCli(argv: string[]): Promise<void> {
     .option("--lark-cli <path>", "override lark-cli binary path")
     .option("--domain <d>", "feishu | lark", "feishu")
     .action(async (opts) => {
-      await runPreflight({ larkCliPath: opts.larkCli, installLarkCli: true });
       await runSetupWizard({
         profileName: opts.profile,
         larkCliPath: opts.larkCli,
@@ -174,7 +173,6 @@ export async function runCli(argv: string[]): Promise<void> {
 
       if (!(await hasLarkAppConfigured(cfg.larkProfile))) {
         process.stdout.write("\n未检测到飞书应用配置，进入扫码向导…\n\n");
-        await runPreflight({ larkCliPath: opts.larkCli, installLarkCli: true });
         await runSetupWizard({
           profileName: cfg.larkProfile ?? "lark-opencode-bridge",
           larkCliPath: opts.larkCli,
@@ -461,4 +459,4 @@ function printDoctor(r: DoctorReport): void {
   w(`require @ in group: ${r.cfg.requireGroupMention}`);
 }
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";

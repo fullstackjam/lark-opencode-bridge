@@ -106,9 +106,8 @@ If you prefer not to use the wizard:
 
 ```bash
 npx @larksuite/cli@latest install
-lark-cli auth login
-export LARK_APP_SECRET=<from https://open.feishu.cn/app/<app_id>/cert>
-npm run setup    # explicit wizard only
+# 或
+npm install -g @larksuite/cli@latest
 ```
 
 ### Lark developer console settings (one-time)

@@ -5,6 +5,7 @@ import { createLogger } from "../log.js";
 import { guideScopeImport } from "./scopes-setup.js";
 import { configureBridgeApp } from "./app-setup.js";
 import { saveBridgeSecret } from "./bridge-secrets.js";
+import { ensureLarkCli } from "./lark-cli-install.js";
 
 const log = createLogger("wizard");
 
@@ -41,8 +42,17 @@ export interface SetupResult {
  */
 export async function runSetupWizard(opts: SetupOptions = {}): Promise<SetupResult> {
   const profileName = opts.profileName ?? "lark-opencode-bridge";
-  const larkCli = opts.larkCliPath ?? "lark-cli";
   const domain = opts.domain ?? "feishu";
+
+  const lark = await ensureLarkCli({
+    larkCliPath: opts.larkCliPath,
+    installIfMissing: true,
+    upgradeToLatest: true,
+  });
+  if (!lark.ok) {
+    throw new Error(lark.error ?? "lark-cli 不可用");
+  }
+  const larkCli = lark.larkCliPath;
 
   process.stdout.write("\n=== lark-opencode-bridge 扫码绑定 ===\n\n");
   process.stdout.write("请用飞书 App 扫描下方二维码，授权后 bridge 会自动保存凭证。\n\n");
