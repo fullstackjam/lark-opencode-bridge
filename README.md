@@ -42,7 +42,7 @@ You send a message in Feishu — the bridge forwards it to the `opencode` proces
 
 No model in the cloud, no code hosting, no new account. Code and execution stay on your machine; Feishu only carries the messages and the card.
 
-![Data flow: Feishu message → bridge → local opencode → streaming card](./docs/img/data-flow.svg)
+![Data flow: Feishu message → bridge → local opencode → streaming card](./docs/img/en/data-flow.svg)
 
 ---
 
@@ -81,7 +81,7 @@ You're already using opencode, but it has natural limits:
 |---|---|---|
 | Want to keep working on a project? Walk back into its group — context is still there, no re-briefing needed. | Pull product / engineering / QA into the same group. They share the agent's context. No `@` mention needed inside the group. | Upgrades collaboration from "brain → brain" to "person → agent → person", with the agent carrying context between people. |
 
-![P2P vs P2A2P collaboration model](./docs/img/spawn-collaboration.svg)
+![P2P vs P2A2P collaboration model](./docs/img/en/spawn-collaboration.svg)
 
 > 📝 **Concrete example:** When a new feature is shipping, the PM briefs opencode inside a `/spawn` group — background, goals, constraints — and asks it to read the relevant code. Engineers join the same group and, instead of re-reading the PRD, simply ask the agent *"what's the context here / how far along are we / why is this designed this way?"*. The agent becomes the shared, always-on "context hub" between roles.
 
@@ -127,7 +127,7 @@ You're already using opencode, but it has natural limits:
 
 > **First time?** Follow the steps in order. **Don't skip ahead.** The first run must happen in the foreground (`run`) to scan the QR code — **do not** jump straight to `start` (background daemon).
 
-![Four steps: install opencode → install bridge → scan QR → message in Feishu](./docs/img/quick-start.svg)
+![Four steps: install opencode → install bridge → scan QR → message in Feishu](./docs/img/en/quick-start.svg)
 
 ### Step 0 — Node.js
 
