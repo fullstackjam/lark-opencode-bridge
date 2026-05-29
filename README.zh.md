@@ -451,14 +451,19 @@ lark-opencode-bridge service install|start|stop|uninstall  （与 start/stop 等
                        fetchThread() (GET /open-apis/drive/v1/files/.../comments/...)
                           │ extract triggering reply text + anchored quote
                           ▼
+                       reactToReply("Typing", add)  ◄── 收到即贴 🧑‍💻 表情
+                          ▼
                        opencode session keyed by `doc:<file_token>`
                           │ session.prompt with question + quote + doc URL
                           ▼
                        postReply() (POST .../comments/{commentId}/replies)
+                          ▼
+                       reactToReply("Typing", delete) ◄── 回复完成即撤表情
 ```
 
 - 每篇文档自己一个 opencode session（按 `file_token`），评论 thread 上下文连续
 - 回复纯文本，截到 2000 字符（飞书评论上限）
+- **收到即反馈**：确认 @ 且有问题文本后，给触发评论贴上 🧑‍💻 `Typing`（敲代码）表情；回复写回后自动撤掉该表情，形成「处理中 → 完成」的可视状态。表情加/删均 best-effort，失败不影响回复。
 
 ### 附件流
 

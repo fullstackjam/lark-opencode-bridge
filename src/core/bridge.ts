@@ -81,6 +81,9 @@ const CARD_PATCH_INTERVAL_MS = 800;
  */
 const PROMPT_TOOLS: Record<string, boolean> = { question: false };
 
+/** Feishu reaction key used to acknowledge a received doc-comment @mention (敲代码). */
+const COMMENT_ACK_REACTION = "Typing";
+
 export class Bridge {
   private consumer: LarkWsConsumer | null = null;
   private credentials: LarkCredentials | null = null;
@@ -1547,6 +1550,19 @@ export class Bridge {
       return;
     }
 
+    // Acknowledge receipt with a 敲代码 reaction so the user sees the bot is on it.
+    // Best-effort — never let a reaction failure block the actual reply.
+    try {
+      await this.comments.reactToReply(
+        evt.file_token,
+        evt.file_type,
+        targetReply.reply_id,
+        COMMENT_ACK_REACTION,
+      );
+    } catch (err) {
+      log.debug(`ack reaction on ${targetReply.reply_id} failed: ${(err as Error).message}`);
+    }
+
     const docUrl = buildDocUrl(this.credentials?.brand ?? "feishu", evt.file_type, evt.file_token);
     const promptText = buildCommentPrompt({
       question,
@@ -1583,6 +1599,18 @@ export class Bridge {
       const replyText = (result.text || "(opencode returned an empty response)").slice(0, 2000);
       await this.comments.postReply(evt.file_token, evt.comment_id, evt.file_type, replyText);
       log.info(`replied to comment ${evt.comment_id} on ${evt.file_type}/${evt.file_token}`);
+      // Generation done — clear the 敲代码 ack reaction. Best-effort.
+      try {
+        await this.comments.reactToReply(
+          evt.file_token,
+          evt.file_type,
+          targetReply.reply_id,
+          COMMENT_ACK_REACTION,
+          "delete",
+        );
+      } catch (err) {
+        log.debug(`clear ack reaction on ${targetReply.reply_id} failed: ${(err as Error).message}`);
+      }
     };
 
     let sessionId = await ensureDocSession();

@@ -450,14 +450,19 @@ Feishu doc comment / reply @bot ───► drive.notice.comment_add_v1 (WSClie
                                fetchThread() (GET /open-apis/drive/v1/files/.../comments/...)
                                   │ extract triggering reply text + anchored quote
                                   ▼
+                               reactToReply("Typing", add)  ◄── ack with 🧑‍💻 on receipt
+                                  ▼
                                opencode session keyed by `doc:<file_token>`
                                   │ session.prompt with question + quote + doc URL
                                   ▼
                                postReply() (POST .../comments/{commentId}/replies)
+                                  ▼
+                               reactToReply("Typing", delete) ◄── cleared once replied
 ```
 
 - Each doc keeps its own opencode session (keyed by `file_token`), so a follow-up comment thread retains context.
 - Replies are plain text, capped at 2000 characters (Lark comment limit).
+- **Instant acknowledgement**: once the @mention is confirmed to carry a question, the triggering reply gets a 🧑‍💻 `Typing` reaction; it is removed after the answer is posted, giving a clear “working → done” signal. Both add and remove are best-effort and never block the reply.
 
 ### Attachment flow
 

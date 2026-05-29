@@ -105,6 +105,27 @@ export class CommentFetcher {
     });
   }
 
+  /**
+   * Add or remove an emoji reaction on a comment reply (e.g. "Typing" / 敲代码 to
+   * acknowledge that the bot received the @mention). Best-effort: callers should
+   * not let a reaction failure abort the main reply flow.
+   */
+  async reactToReply(
+    fileToken: string,
+    fileType: string,
+    replyId: string,
+    reactionType: string,
+    action: "add" | "delete" = "add",
+  ): Promise<void> {
+    const client = this.requireClient();
+    const target = await resolveCommentTarget(client, fileToken, fileType);
+    await client.drive.v2.commentReaction.updateReaction({
+      path: { file_token: target.fileToken },
+      params: { file_type: target.fileType },
+      data: { action, reply_id: replyId, reaction_type: reactionType },
+    });
+  }
+
   private requireClient(): Client {
     if (!this.client) {
       throw new Error("CommentFetcher not initialized — bridge credentials missing");
