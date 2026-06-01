@@ -213,7 +213,7 @@ export async function runCli(argv: string[]): Promise<void> {
 
   program
     .command("start")
-    .description("Install (if needed) and start background daemon (macOS launchd / Linux systemd)")
+    .description("Install (if needed) and start background daemon (macOS launchd / Linux systemd / Windows Task Scheduler)")
     .action(async () => {
       if (!(await hasLarkAppConfigured())) {
         process.stdout.write(
@@ -232,8 +232,12 @@ export async function runCli(argv: string[]): Promise<void> {
       const procs = await listProcesses();
       const alive = procs.some((p) => p.label === "run" && isAlive(p.pid));
       if (!alive) {
+        const tailHint =
+          process.platform === "win32"
+            ? `  Get-Content -Tail 20 "${LOG_DIR}\\service.stderr.log"`
+            : `  tail -20 ${LOG_DIR}/service.stderr.log`;
         process.stdout.write(
-          "\n⚠ bridge 进程未注册（可能 preflight 失败）。请运行:\n\n  lark-opencode-bridge doctor\n  tail -20 ~/.lark-opencode-bridge/logs/service.stderr.log\n\n",
+          `\n⚠ bridge 进程未注册（可能 preflight 失败）。请运行:\n\n  lark-opencode-bridge doctor\n${tailHint}\n\n`,
         );
       } else {
         process.stdout.write("\n✓ bridge 进程已就绪。私聊直接发消息；群里请 @ 机器人。\n");
@@ -272,7 +276,7 @@ export async function runCli(argv: string[]): Promise<void> {
 
   service
     .command("install")
-    .description("Install launchd (macOS) or systemd user service (Linux)")
+    .description("Install launchd (macOS), systemd user service (Linux), or scheduled task (Windows)")
     .action(async () => {
       await installService();
       process.stdout.write("Service installed.\n");

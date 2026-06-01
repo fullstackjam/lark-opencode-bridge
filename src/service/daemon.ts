@@ -5,11 +5,12 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createLogger } from "../log.js";
-import { HOME_DIR } from "../paths.js";
+import { HOME_DIR, LOG_DIR, ensureHome } from "../paths.js";
 
 const log = createLogger("service");
 
 const LABEL = "com.lark-opencode-bridge";
+const IS_WIN = process.platform === "win32";
 
 export interface ServiceBinaries {
   larkCli?: string;
@@ -25,9 +26,12 @@ export function resolveServiceBinaries(): ServiceBinaries {
 }
 
 function resolveOnPath(name: string): string | undefined {
-  const res = spawnSync("which", [name], { encoding: "utf8", env: process.env });
+  // `which` on POSIX, `where` on Windows. `where` may print several matches,
+  // one per line — take the first.
+  const finder = IS_WIN ? "where" : "which";
+  const res = spawnSync(finder, [name], { encoding: "utf8", env: process.env });
   if (res.status !== 0) return undefined;
-  const p = res.stdout.trim();
+  const p = res.stdout.split(/\r?\n/)[0]?.trim();
   return p || undefined;
 }
 
@@ -151,6 +155,78 @@ WantedBy=default.target
 `;
 }
 
+/**
+ * Windows Task Scheduler definition. Mirrors launchd KeepAlive / systemd
+ * Restart=always semantics:
+ *  - LogonTrigger → starts on user logon (per-user, like a LaunchAgent / --user unit)
+ *  - RestartOnFailure → relaunch on crash (non-zero exit), not on clean exit
+ *  - ExecutionTimeLimit PT0S → never time-limited (it's a long-running daemon)
+ * The action runs cmd.exe so we can redirect stdout/stderr to the same log
+ * files the other platforms use. The scheduled task inherits the interactive
+ * user's full environment (PATH etc.), so no explicit PATH wiring is needed.
+ */
+export function windowsTaskXml(binaries: ServiceBinaries): string {
+  const programArgs = runProgramArgs(binaries);
+  const outLog = path.join(LOG_DIR, "service.stdout.log");
+  const errLog = path.join(LOG_DIR, "service.stderr.log");
+  const inner =
+    programArgs.map((a) => `"${a}"`).join(" ") +
+    ` 1>> "${outLog}" 2>> "${errLog}"`;
+  // cmd /c "<full command line>" — the outer wrapping quotes are stripped by cmd.
+  const cmdArgs = `/c "${inner}"`;
+  return `<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Lark OpenCode Bridge</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <RestartOnFailure>
+      <Interval>PT1M</Interval>
+      <Count>999</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>cmd.exe</Command>
+      <Arguments>${escapeXml(cmdArgs)}</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+`;
+}
+
+function windowsTaskXmlPath(): string {
+  return path.join(HOME_DIR, "service-task.xml");
+}
+
+/** schtasks needs a UTF-16LE file with BOM for /Create /XML. */
+async function writeWindowsTaskXml(binaries: ServiceBinaries): Promise<string> {
+  const xml = windowsTaskXml(binaries);
+  const file = windowsTaskXmlPath();
+  await fs.writeFile(file, Buffer.from("﻿" + xml, "utf16le"));
+  return file;
+}
+
 function escapeXml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -173,9 +249,10 @@ function systemdUnitPath(): string {
 }
 
 function assertServicePlatform(): void {
-  if (process.platform !== "darwin" && process.platform !== "linux") {
+  const ok = process.platform === "darwin" || process.platform === "linux" || IS_WIN;
+  if (!ok) {
     throw new Error(
-      "后台服务仅支持 macOS / Linux — 请在前台运行: lark-opencode-bridge run",
+      `后台服务暂不支持 ${process.platform} — 请在前台运行: lark-opencode-bridge run`,
     );
   }
 }
@@ -209,6 +286,9 @@ export async function restartService(): Promise<void> {
 
 export async function installService(): Promise<void> {
   assertServicePlatform();
+  // The daemon redirects stdout/stderr into LOG_DIR before the bridge gets a
+  // chance to create it — make sure it exists up front on every platform.
+  await ensureHome();
   const binaries = resolveServiceBinaries();
   if (!binaries.larkCli) {
     log.warn("lark-cli not found on PATH — daemon may fail preflight until @larksuite/cli is installed");
@@ -217,6 +297,17 @@ export async function installService(): Promise<void> {
     log.warn("opencode not found on PATH — daemon may fail preflight until opencode is installed");
   }
 
+  if (IS_WIN) {
+    const xmlPath = await writeWindowsTaskXml(binaries);
+    try {
+      // /F overwrites an existing task so in-place upgrades refresh the command.
+      run("schtasks", ["/Create", "/TN", LABEL, "/XML", xmlPath, "/F"]);
+    } finally {
+      await fs.rm(xmlPath, { force: true }).catch(() => undefined);
+    }
+    log.info(`installed scheduled task: ${LABEL}`);
+    return;
+  }
   if (process.platform === "darwin") {
     const plistPath = launchAgentPath();
     await fs.mkdir(path.dirname(plistPath), { recursive: true });
@@ -242,6 +333,12 @@ export async function installService(): Promise<void> {
 
 export async function uninstallService(): Promise<void> {
   assertServicePlatform();
+  if (IS_WIN) {
+    // Tolerate "task does not exist" so uninstall is idempotent.
+    runTolerant("schtasks", ["/Delete", "/TN", LABEL, "/F"], /cannot find|does not exist|ERROR:.*specified/i);
+    log.info("uninstalled scheduled task");
+    return;
+  }
   if (process.platform === "darwin") {
     const plistPath = launchAgentPath();
     run("launchctl", ["unload", plistPath]);
@@ -261,6 +358,12 @@ export async function uninstallService(): Promise<void> {
 
 export async function startService(): Promise<void> {
   assertServicePlatform();
+  if (IS_WIN) {
+    // /Run starts the task immediately regardless of its logon trigger.
+    // MultipleInstancesPolicy=IgnoreNew makes this a no-op if already running.
+    run("schtasks", ["/Run", "/TN", LABEL]);
+    return;
+  }
   if (process.platform === "darwin") {
     // Use load -w (idempotent when already loaded → ignore that error).
     const plistPath = launchAgentPath();
@@ -282,6 +385,12 @@ export async function startService(): Promise<void> {
 
 export async function stopService(): Promise<void> {
   assertServicePlatform();
+  if (IS_WIN) {
+    // /End terminates the running instance but keeps the task definition.
+    // The logon trigger won't refire until next logon; `start` re-runs it now.
+    runTolerant("schtasks", ["/End", "/TN", LABEL], /cannot find|does not exist|not running|ERROR:.*specified/i);
+    return;
+  }
   if (process.platform === "darwin") {
     // `launchctl stop` alone would respawn due to KeepAlive. Unload the plist
     // so the agent is truly gone; restart pairs this with load -w.
@@ -305,6 +414,25 @@ export async function stopService(): Promise<void> {
 
 export async function getServiceStatus(): Promise<ServiceStatus> {
   const platform = process.platform;
+  if (IS_WIN) {
+    const res = spawnSync("schtasks", ["/Query", "/TN", LABEL, "/FO", "LIST"], {
+      encoding: "utf8",
+    });
+    const installed = res.status === 0;
+    // schtasks prints a localized "Status:" line; "Running" is stable across
+    // locales for the running state, otherwise it reads "Ready".
+    const running = installed && /\bRunning\b/i.test(res.stdout || "");
+    return {
+      installed,
+      running,
+      platform,
+      detail: installed
+        ? running
+          ? "schtasks: running"
+          : "schtasks: installed, not running"
+        : "schtasks: not installed",
+    };
+  }
   if (platform === "darwin") {
     const plistPath = launchAgentPath();
     let installed = false;

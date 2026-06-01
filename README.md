@@ -238,7 +238,7 @@ lark-opencode-bridge configure
 
 ### Step 7 (optional) — Background daemon
 
-Only **after Step 6 works**, switch to the background (macOS / Linux only):
+Only **after Step 6 works**, switch to the background (macOS / Linux / Windows):
 
 ```bash
 # Stop the foreground run with Ctrl+C first
@@ -362,7 +362,7 @@ Submitted changes write `~/.lark-opencode-bridge/config.json` immediately; **no 
 ```
 lark-opencode-bridge              Foreground (default = run)
 lark-opencode-bridge run          Run the bot in the foreground
-lark-opencode-bridge start        Install + start the background daemon (macOS / Linux)
+lark-opencode-bridge start        Install + start the background daemon (macOS / Linux / Windows)
 lark-opencode-bridge stop         Stop the daemon
 lark-opencode-bridge restart      Restart the daemon
 lark-opencode-bridge unregister   Remove the service registration
@@ -375,7 +375,7 @@ lark-opencode-bridge status       Show daemon + config summary
 lark-opencode-bridge service install|start|stop|uninstall  (equivalent to start/stop)
 ```
 
-> Daemon is **macOS / Linux only**. `start` etc. require a **global install** (`npm i -g`) — not `npx`.
+> Daemon runs on **macOS (launchd) / Linux (systemd --user) / Windows (Task Scheduler)**. `start` etc. require a **global install** (`npm i -g`) — not `npx`.
 
 ---
 
@@ -530,7 +530,7 @@ src/
 │   └── conflicts.ts      # multi-instance detection for the same app
 │
 ├── service/
-│   └── daemon.ts         # launchd (macOS) / systemd (Linux)
+│   └── daemon.ts         # launchd (macOS) / systemd (Linux) / Task Scheduler (Windows)
 │
 └── media/
     └── cleanup.ts        # periodic media cleanup (24h)
@@ -556,7 +556,7 @@ opencode is open source, terminal-native, and **model-agnostic** — you pick th
 Normal groups require `@bot`. Use `/spawn <topic>` to create a dedicated workspace group where `@` is not needed.
 
 **Q: Does it work on Windows?**
-Foreground `run` works; the background daemon is macOS / Linux only.
+Yes — both foreground `run` and the background daemon. On Windows the daemon registers a per-user **Task Scheduler** task (logon-triggered, auto-restart on crash), the equivalent of launchd on macOS and systemd `--user` on Linux. Use `start` / `stop` / `restart` / `status` the same way.
 
 ---
 
