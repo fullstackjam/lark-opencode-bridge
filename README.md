@@ -16,6 +16,15 @@ lark-opencode-bridge run
 
 ---
 
+## 💬 Community & support
+
+- 📖 More guides & help docs: [Feishu knowledge base →](https://liulishuo.feishu.cn/wiki/ZahKwFsJQiGnYVkHw76crxVPnUL)
+- 👥 Join the chat group: [one-click join →](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=b84ie8d0-326b-490f-9a14-86b9acd3d7a5), or scan the QR code below (永久有效 / never expires)
+
+<img src="./docs/img/feishu-group-qr.png" alt="lark-opencode-bridge chat group" width="240" />
+
+---
+
 ## Contents
 
 - [What it is](#what-it-is)

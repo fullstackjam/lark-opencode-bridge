@@ -3,6 +3,11 @@
 All notable changes to **lark-opencode-bridge** are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.11] - 2026-06-01
+
+### Docs
+- README（中英文）开头新增「分享与交流 / Community」区块：飞书知识库帮助文档链接、交流群一键加入超链接，以及群二维码（`docs/img/feishu-group-qr.png`）。
+
 ## [0.1.10] - 2026-05-29
 
 ### Added
