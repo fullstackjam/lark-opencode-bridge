@@ -5,6 +5,11 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 This is a private fork of [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge); upstream releases are listed below for traceability.
 
+## [0.1.15] - 2026-06-06
+
+### Docs
+- `LICENSE` adds a second copyright line for `@fullstackjam/lark-opencode-bridge contributors`; the upstream line is preserved per MIT.
+
 ## [0.1.14] - 2026-06-06
 
 ### Docs
