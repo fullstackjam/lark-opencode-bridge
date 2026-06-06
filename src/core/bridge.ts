@@ -1323,6 +1323,7 @@ export class Bridge {
     parts: PromptPart[],
     rt: PerChatRuntime,
   ): Promise<void> {
+    const startedAt = Date.now();
     try {
       const result = await this.client.prompt({
         sessionId,
@@ -1332,6 +1333,9 @@ export class Bridge {
         tools: PROMPT_TOOLS,
         signal: rt.abort?.signal,
       });
+      log.debug(
+        `prompt resolved in ${Date.now() - startedAt}ms text_len=${result.text.length}`,
+      );
       const reply = result.text || "_(opencode returned an empty response)_";
       await this.replyMarkdown(evt, reply);
     } catch (err) {

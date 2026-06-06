@@ -118,8 +118,10 @@ export class LarkSender {
   private run(args: string[]): Promise<string> {
     const bin = this.opts.larkCliPath ?? "lark-cli";
     const argv = this.opts.profile ? ["--profile", this.opts.profile, ...args] : args;
+    log.debug(`spawn ${args[0]} ${args[1]}`);
     return new Promise((resolve, reject) => {
       const proc = spawn(bin, argv, { stdio: ["ignore", "pipe", "pipe"] });
+      proc.on("spawn", () => log.debug(`spawned ${args[0]} ${args[1]} pid=${proc.pid}`));
       const stdout: Buffer[] = [];
       const stderr: Buffer[] = [];
       proc.stdout.on("data", (c) => stdout.push(c));
