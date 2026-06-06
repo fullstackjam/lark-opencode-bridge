@@ -5,7 +5,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 This is a private fork of [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge); upstream releases are listed below for traceability.
 
-## [0.1.14] - Unreleased
+## [0.1.14] - 2026-06-06
 
 ### Docs
 - Dropped the upstream "分享与交流 / Community" section from both READMEs (knowledge base, chat-group invite link, group QR all pointed at upstream's resources).
