@@ -5,6 +5,11 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 This is a private fork of [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge); upstream releases are listed below for traceability.
 
+## [0.1.17] - 2026-06-06
+
+### Fixed
+- **`--version` was hardcoded `0.1.5`** — independent of what `package.json` said and never updated as upstream cut releases. `cli.ts` now references a build-time constant `__PKG_VERSION__` injected by tsup's `define`, so the published binary's version always tracks `package.json` (no more lying to `--version`).
+
 ## [0.1.16] - 2026-06-06
 
 ### Fixed

@@ -494,7 +494,8 @@ function printDoctor(r: DoctorReport): void {
   w(`require @ in group: ${r.cfg.requireGroupMention}`);
 }
 
-const VERSION = "0.1.5";
+declare const __PKG_VERSION__: string;
+const VERSION = typeof __PKG_VERSION__ !== "undefined" ? __PKG_VERSION__ : "0.0.0-dev";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
