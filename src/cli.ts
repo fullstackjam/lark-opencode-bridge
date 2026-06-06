@@ -245,7 +245,7 @@ export async function runCli(argv: string[]): Promise<void> {
         process.stdout.write("\n✓ bridge 进程已就绪。私聊直接发消息；群里请 @ 机器人。\n");
       }
       process.stdout.write(
-        "\n提示: 后台命令需全局安装 (npm i -g lark-opencode-bridge)，勿用 npx。\n",
+        "\n提示: 后台命令需全局安装 (npm i -g @fullstackjam/lark-opencode-bridge)，勿用 npx。\n",
       );
     });
 

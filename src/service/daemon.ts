@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { readdirSync } from "node:fs";
+import { readdirSync, existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -89,8 +89,14 @@ export interface ServiceStatus {
 }
 
 function bridgeBin(): string {
-  // Resolve the installed CLI entry relative to this package.
+  // dist/cli.js (tsup-bundled, what `npm i -g` ships) lives one level under
+  // the package root. src/service/daemon.ts (dev via tsx) lives two levels
+  // under. The old `../../bin` formula assumed the source layout and broke
+  // for scoped packages (it resolved to `@scope/bin/...` instead of
+  // `@scope/<pkg>/bin/...`).
   const here = path.dirname(fileURLToPath(import.meta.url));
+  const bundled = path.resolve(here, "../bin/lark-opencode-bridge.mjs");
+  if (existsSync(bundled)) return bundled;
   return path.resolve(here, "../../bin/lark-opencode-bridge.mjs");
 }
 

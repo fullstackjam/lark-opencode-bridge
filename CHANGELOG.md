@@ -5,6 +5,12 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 This is a private fork of [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge); upstream releases are listed below for traceability.
 
+## [0.1.16] - 2026-06-06
+
+### Fixed
+- **`start` daemon could not launch on scoped npm installs** — `bridgeBin()` computed the absolute path with `../../bin/...` from `dist/cli.js`, which overshoots one level for scoped packages and produced `/opt/homebrew/lib/node_modules/@fullstackjam/bin/lark-opencode-bridge.mjs` (missing the `lark-opencode-bridge` segment). Now tries `../bin/...` first (bundled layout) and falls back to `../../bin/...` (source layout used by `tsx` in dev).
+- **`status` install hint pointed at the unscoped package name** — now suggests `npm i -g @fullstackjam/lark-opencode-bridge` instead of `lark-opencode-bridge`.
+
 ## [0.1.15] - 2026-06-06
 
 ### Docs
