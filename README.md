@@ -1,5 +1,14 @@
 # lark-opencode-bridge
 
+> ⚠️ **Deprecated — migrate to [`@fullstackjam/lark-coding-agent-bridge`](https://github.com/fullstackjam/lark-coding-agent-bridge).** This package was a fork of [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge), which itself was a slimmed-down fork of the much more feature-complete [zarazhangrui/lark-coding-agent-bridge](https://github.com/zarazhangrui/lark-coding-agent-bridge). We've now re-forked directly from `zarazhangrui/lark-coding-agent-bridge` and contributed back an `opencode` adapter — get multi-agent (Claude Code / Codex / opencode), multi-profile, proxy support, lockfile-safe state, and 992+ stars worth of upstream polish.
+>
+> ```bash
+> npm i -g @fullstackjam/lark-coding-agent-bridge@latest
+> lark-channel-bridge run --agent opencode
+> ```
+>
+> No new releases will land in this repo. Last version: `0.1.21`.
+
 [![CI](https://github.com/fullstackjam/lark-opencode-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/fullstackjam/lark-opencode-bridge/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@fullstackjam/lark-opencode-bridge.svg)](https://www.npmjs.com/package/@fullstackjam/lark-opencode-bridge)
 

@@ -1,5 +1,14 @@
 # lark-opencode-bridge
 
+> ⚠️ **已弃用——请迁移到 [`@fullstackjam/lark-coding-agent-bridge`](https://github.com/fullstackjam/lark-coding-agent-bridge)**。本包原本是 [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge) 的 fork，而那个仓库自己又是更成熟的 [zarazhangrui/lark-coding-agent-bridge](https://github.com/zarazhangrui/lark-coding-agent-bridge) 的精简版 fork。我们现在直接从 `zarazhangrui/lark-coding-agent-bridge` 重新 fork，并把 `opencode` adapter 加了进去——一次性拿到多 agent（Claude Code / Codex / opencode）、多 profile、代理、文件锁安全的状态写入，以及 992+ stars 的上游打磨。
+>
+> ```bash
+> npm i -g @fullstackjam/lark-coding-agent-bridge@latest
+> lark-channel-bridge run --agent opencode
+> ```
+>
+> 本仓库不再发新版。最后版本：`0.1.21`。
+
 [![CI](https://github.com/fullstackjam/lark-opencode-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/fullstackjam/lark-opencode-bridge/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@fullstackjam/lark-opencode-bridge.svg)](https://www.npmjs.com/package/@fullstackjam/lark-opencode-bridge)
 
