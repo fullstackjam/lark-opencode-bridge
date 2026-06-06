@@ -3,6 +3,9 @@ import { createLogger } from "../log.js";
 
 const log = createLogger("lark.send");
 
+/** Kill a lark-cli child that produces no exit within this window. */
+const RUN_TIMEOUT_MS = 60_000;
+
 export interface SenderOptions {
   identity: "bot" | "user";
   larkCliPath?: string;
@@ -122,12 +125,22 @@ export class LarkSender {
     return new Promise((resolve, reject) => {
       const proc = spawn(bin, argv, { stdio: ["ignore", "pipe", "pipe"] });
       proc.on("spawn", () => log.debug(`spawned ${args[0]} ${args[1]} pid=${proc.pid}`));
+      const timer = setTimeout(() => {
+        log.error(
+          `lark-cli ${args[0]} ${args[1]} timed out after ${RUN_TIMEOUT_MS}ms — killing pid=${proc.pid}`,
+        );
+        proc.kill("SIGKILL");
+      }, RUN_TIMEOUT_MS);
       const stdout: Buffer[] = [];
       const stderr: Buffer[] = [];
       proc.stdout.on("data", (c) => stdout.push(c));
       proc.stderr.on("data", (c) => stderr.push(c));
-      proc.on("error", reject);
+      proc.on("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
       proc.on("exit", (code) => {
+        clearTimeout(timer);
         const out = Buffer.concat(stdout).toString("utf8");
         const err = Buffer.concat(stderr).toString("utf8");
         if (code === 0) {
