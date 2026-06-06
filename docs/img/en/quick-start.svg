@@ -48,8 +48,9 @@
       <line x1="20" y1="22" x2="20" y2="42" stroke="#3F75CC" stroke-width="1.5"/>
     </g>
     <text x="360" y="160" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif" font-size="20" font-weight="700" fill="#1F3A6B">Install bridge</text>
-    <text x="360" y="190" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#2C4A85">npm i -g</text>
-    <text x="360" y="208" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#2C4A85">lark-opencode-bridge</text>
+    <text x="360" y="178" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#2C4A85">npm i -g</text>
+    <text x="360" y="196" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#2C4A85">@fullstackjam/</text>
+    <text x="360" y="214" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#2C4A85">lark-opencode-bridge</text>
   </g>
 
   <g stroke="#7A99C9" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">

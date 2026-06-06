@@ -16,15 +16,6 @@ lark-opencode-bridge run
 
 ---
 
-## 💬 分享与交流
-
-- 📖 更多帮助与指南文档，请查看 [飞书知识库 →](https://liulishuo.feishu.cn/wiki/ZahKwFsJQiGnYVkHw76crxVPnUL)
-- 👥 加入交流群：[点此一键加入 →](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=b84ie8d0-326b-490f-9a14-86b9acd3d7a5)，或扫描下方群二维码（永久有效）
-
-<img src="./docs/img/feishu-group-qr.png" alt="lark-opencode-bridge 交流群" width="240" />
-
----
-
 ## 目录
 
 - [这是什么](#这是什么)

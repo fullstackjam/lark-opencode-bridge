@@ -1,7 +1,33 @@
 # Changelog
 
-All notable changes to **lark-opencode-bridge** are documented here.
+All notable changes to **@fullstackjam/lark-opencode-bridge** are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
+
+This is a private fork of [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge); upstream releases are listed below for traceability.
+
+## [0.1.14] - Unreleased
+
+### Docs
+- Dropped the upstream "分享与交流 / Community" section from both READMEs (knowledge base, chat-group invite link, group QR all pointed at upstream's resources).
+- `docs/img/feishu-group-qr.png` removed.
+- `docs/img/quick-start.svg` (+ EN version) step-2 box now shows the scoped `@fullstackjam/lark-opencode-bridge` package name across three lines.
+- `CHANGELOG.md` now distinguishes fork releases from inherited upstream history.
+
+## [0.1.13] - 2026-06-06
+
+### Changed
+- **Renamed to `@fullstackjam/lark-opencode-bridge`** — repackaged under the fork's scope; the `opencode-bridge` bin alias was dropped to avoid colliding with the upstream package.
+- Repository, bugs, and homepage URLs retargeted at `fullstackjam/lark-opencode-bridge`.
+
+### Fixed
+- **lark-cli reply child timeout** — a hung `lark-cli` reply child previously stalled the pipeline indefinitely with no log output (silent no-reply failure mode). It is now killed after 60s with the error surfaced. (`7c65030`)
+- **larkProfile propagation** — the configured `larkProfile` was not threaded through every `lark-cli` invocation, breaking multi-profile setups. (`8a63f7b`)
+- **Reply-spawn debug logging** — added structured debug entries around prompt completion and the reply spawn path, making the no-reply failure mode diagnosable. (`5adf2bc`)
+
+### CI
+- Tag-triggered release workflow (`.github/workflows/release.yml`): pushing a `v*` tag now runs typecheck + tests + build, verifies the tag matches `package.json`, publishes to npm with build provenance, and creates a GitHub Release with auto-generated notes. Replaces the previous local `scripts/release.mjs`.
+
+---
 
 ## [0.1.12] - 2026-06-01
 
