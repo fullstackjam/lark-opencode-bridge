@@ -1,19 +1,18 @@
 {
-  "name": "lark-opencode-bridge",
+  "name": "@fullstackjam/lark-opencode-bridge",
   "version": "0.1.12",
   "description": "Feishu/Lark bot for local opencode — QR setup, streaming cards, /spawn groups, doc comments & attachments",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YMaxwellHayes/lark-opencode-bridge.git"
+    "url": "git+https://github.com/fullstackjam/lark-opencode-bridge.git"
   },
   "bugs": {
-    "url": "https://github.com/YMaxwellHayes/lark-opencode-bridge/issues"
+    "url": "https://github.com/fullstackjam/lark-opencode-bridge/issues"
   },
-  "homepage": "https://github.com/YMaxwellHayes/lark-opencode-bridge#readme",
+  "homepage": "https://github.com/fullstackjam/lark-opencode-bridge#readme",
   "bin": {
-    "lark-opencode-bridge": "bin/lark-opencode-bridge.mjs",
-    "opencode-bridge": "bin/lark-opencode-bridge.mjs"
+    "lark-opencode-bridge": "bin/lark-opencode-bridge.mjs"
   },
   "exports": {
     ".": {

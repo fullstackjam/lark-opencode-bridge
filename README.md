@@ -1,18 +1,18 @@
 # lark-opencode-bridge
 
-[![CI](https://github.com/YMaxwellHayes/lark-opencode-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/YMaxwellHayes/lark-opencode-bridge/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/lark-opencode-bridge.svg)](https://www.npmjs.com/package/lark-opencode-bridge)
+[![CI](https://github.com/fullstackjam/lark-opencode-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/fullstackjam/lark-opencode-bridge/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@fullstackjam/lark-opencode-bridge.svg)](https://www.npmjs.com/package/@fullstackjam/lark-opencode-bridge)
 
 > 🌉 **TL;DR:** Drive the [opencode](https://opencode.ai) AI coding agent already running on your laptop from inside Feishu / Lark — over your phone, with collaborators, persistent group sessions, and native doc-comment + attachment integration.
 >
 > No model in the cloud, no code uploaded, no new account to sign up for — your code and execution stay 100% local.
 
 ```bash
-npm i -g lark-opencode-bridge@latest
+npm i -g @fullstackjam/lark-opencode-bridge@latest
 lark-opencode-bridge run
 ```
 
-[中文](./README.zh.md) · [GitHub](https://github.com/YMaxwellHayes/lark-opencode-bridge) · [npm](https://www.npmjs.com/package/lark-opencode-bridge)
+[中文](./README.zh.md) · [GitHub](https://github.com/fullstackjam/lark-opencode-bridge) · [npm](https://www.npmjs.com/package/@fullstackjam/lark-opencode-bridge)
 
 ---
 
@@ -185,7 +185,7 @@ lark-cli --version
 ### Step 3 — Install the bridge
 
 ```bash
-npm install -g lark-opencode-bridge@latest
+npm install -g @fullstackjam/lark-opencode-bridge@latest
 lark-opencode-bridge --version
 lark-opencode-bridge doctor
 ```
