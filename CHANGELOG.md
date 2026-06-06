@@ -5,6 +5,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 This is a private fork of [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge); upstream releases are listed below for traceability.
 
+## [0.1.19] - 2026-06-07
+
+### Changed
+- **Setup wizard probes app config before walking the user through permission import.** Old behavior: every `lark-opencode-bridge run` first-time path opened a browser tab for permissions, copied the scopes JSON to the clipboard, then called `configure` (which always failed because scopes weren't imported yet) and opened a second browser tab for events. When the user reinstalls against an existing Feishu app that's already fully configured, all that noise was wasted. New: silently runs `configureBridgeApp` first; if all PATCHes succeed (scopes granted + app published), prints `✓ 应用权限、事件、回调已就绪，跳过权限导入步骤` and skips the guide entirely. Only walks through permission import on a fresh app where the configure PATCH actually fails.
+
+### Fixed
+- Stale `npm run bridge -- configure` hint in the configure-failure message now correctly suggests `lark-opencode-bridge configure`.
+
 ## [0.1.18] - 2026-06-06
 
 ### Changed

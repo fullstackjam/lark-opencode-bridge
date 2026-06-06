@@ -115,13 +115,35 @@ export async function runSetupWizard(opts: SetupOptions = {}): Promise<SetupResu
     brand: brand === "lark" ? "lark" : "feishu",
     profile: profileName,
   });
-  await guideScopeImport(appId, brand === "lark" ? "lark" : "feishu");
-  await configureBridgeApp({
+
+  // Probe first: if the existing app already has the right scopes granted +
+  // a published version, configure PATCHes succeed and we skip the noisy
+  // permission-import guide + browser pops. Common when reinstalling against
+  // an app that's already been set up.
+  const normalizedBrand: "feishu" | "lark" = brand === "lark" ? "lark" : "feishu";
+  const probe = await configureBridgeApp({
     appId,
     appSecret,
-    brand: brand === "lark" ? "lark" : "feishu",
+    brand: normalizedBrand,
     ownerOpenId: result.user_info?.open_id,
+    silent: true,
   });
-  process.stdout.write("全部完成后运行: npm start\n\n");
+
+  if (probe.errors.length === 0) {
+    process.stdout.write(
+      "\n✓ 应用权限、事件、回调已就绪（应用名称: " + probe.displayName + "），跳过权限导入步骤。\n",
+    );
+    process.stdout.write("接下来运行: lark-opencode-bridge start\n\n");
+  } else {
+    await guideScopeImport(appId, normalizedBrand);
+    await configureBridgeApp({
+      appId,
+      appSecret,
+      brand: normalizedBrand,
+      ownerOpenId: result.user_info?.open_id,
+    });
+    process.stdout.write("权限导入并发布版本后，运行: lark-opencode-bridge configure\n");
+    process.stdout.write("然后启动后台: lark-opencode-bridge start\n\n");
+  }
   return { appId, profileName };
 }

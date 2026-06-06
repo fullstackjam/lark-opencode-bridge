@@ -23,6 +23,13 @@ export interface AppSetupOptions {
   ownerOpenId?: string;
   /** Skip contact lookup when already known (e.g. from lark-cli config). */
   ownerName?: string;
+  /**
+   * Run the configure PATCHes without any user-facing output or browser pops.
+   * Used by the wizard to probe whether the app is already fully configured
+   * (scopes granted + published) before deciding whether to walk the user
+   * through permission import.
+   */
+  silent?: boolean;
 }
 
 export interface AppSetupResult {
@@ -47,9 +54,12 @@ export async function configureBridgeApp(opts: AppSetupOptions): Promise<AppSetu
       : "我的");
   const displayName = formatAppDisplayName(ownerName);
   const errors: string[] = [];
+  const silent = opts.silent === true;
 
-  process.stdout.write("\n=== 配置应用（名称 / 事件 / 回调）===\n\n");
-  process.stdout.write(`目标应用名称: ${displayName}\n\n`);
+  if (!silent) {
+    process.stdout.write("\n=== 配置应用（名称 / 事件 / 回调）===\n\n");
+    process.stdout.write(`目标应用名称: ${displayName}\n\n`);
+  }
 
   let nameUpdated = false;
   let eventsConfigured = false;
@@ -101,37 +111,39 @@ export async function configureBridgeApp(opts: AppSetupOptions): Promise<AppSetu
     throw new Error("configureBridgeApp requires appSecret or larkCliProfile");
   }
 
-  if (nameUpdated) process.stdout.write("✓ 应用名称已更新\n");
-  else process.stdout.write("✗ 应用名称更新失败（见下方说明）\n");
+  if (!silent) {
+    if (nameUpdated) process.stdout.write("✓ 应用名称已更新\n");
+    else process.stdout.write("✗ 应用名称更新失败（见下方说明）\n");
 
-  if (eventsConfigured) {
-    process.stdout.write(`✓ 事件订阅已配置（长连接，${DEFAULT_SUBSCRIBED_EVENTS.length} 个事件）\n`);
-  } else {
-    process.stdout.write("✗ 事件订阅 API 配置失败\n");
-  }
+    if (eventsConfigured) {
+      process.stdout.write(`✓ 事件订阅已配置（长连接，${DEFAULT_SUBSCRIBED_EVENTS.length} 个事件）\n`);
+    } else {
+      process.stdout.write("✗ 事件订阅 API 配置失败\n");
+    }
 
-  if (callbacksConfigured) {
-    process.stdout.write(
-      `✓ 回调已配置（长连接，${DEFAULT_SUBSCRIBED_CALLBACKS.join(", ")}）\n`,
-    );
-  } else {
-    process.stdout.write("✗ 回调 API 配置失败\n");
-  }
+    if (callbacksConfigured) {
+      process.stdout.write(
+        `✓ 回调已配置（长连接，${DEFAULT_SUBSCRIBED_CALLBACKS.join(", ")}）\n`,
+      );
+    } else {
+      process.stdout.write("✗ 回调 API 配置失败\n");
+    }
 
-  if (errors.length) {
-    process.stdout.write("\n部分步骤未成功，常见原因：\n");
-    process.stdout.write("  • 权限尚未导入/发布（先完成上一步权限批量导入）\n");
-    process.stdout.write("  • 缺少 application:application:self_manage 等应用管理权限\n");
-    process.stdout.write("  • 长连接模式需在后台保存前至少有一次 WS 在线（可先 npm start 再重试）\n\n");
-    for (const err of errors) process.stdout.write(`  - ${err}\n`);
-    process.stdout.write("\n可手动打开：\n");
-    process.stdout.write(`  基础信息: ${baseInfoConsoleUrl(opts.appId, opts.brand)}\n`);
-    process.stdout.write(`  事件配置: ${eventsConsoleUrl(opts.appId, opts.brand)}\n`);
-    process.stdout.write(`  回调配置: ${callbacksConsoleUrl(opts.appId, opts.brand)}\n`);
-    process.stdout.write("\n权限发布完成后重试: npm run bridge -- configure\n\n");
-    openInBrowser(eventsConsoleUrl(opts.appId, opts.brand));
-  } else {
-    process.stdout.write("\n应用配置完成。请确保权限已导入并发布版本。\n\n");
+    if (errors.length) {
+      process.stdout.write("\n部分步骤未成功，常见原因：\n");
+      process.stdout.write("  • 权限尚未导入/发布（先完成上一步权限批量导入）\n");
+      process.stdout.write("  • 缺少 application:application:self_manage 等应用管理权限\n");
+      process.stdout.write("  • 长连接模式需在后台保存前至少有一次 WS 在线（可先 npm start 再重试）\n\n");
+      for (const err of errors) process.stdout.write(`  - ${err}\n`);
+      process.stdout.write("\n可手动打开：\n");
+      process.stdout.write(`  基础信息: ${baseInfoConsoleUrl(opts.appId, opts.brand)}\n`);
+      process.stdout.write(`  事件配置: ${eventsConsoleUrl(opts.appId, opts.brand)}\n`);
+      process.stdout.write(`  回调配置: ${callbacksConsoleUrl(opts.appId, opts.brand)}\n`);
+      process.stdout.write("\n权限发布完成后重试: lark-opencode-bridge configure\n\n");
+      openInBrowser(eventsConsoleUrl(opts.appId, opts.brand));
+    } else {
+      process.stdout.write("\n应用配置完成。请确保权限已导入并发布版本。\n\n");
+    }
   }
 
   return { displayName, nameUpdated, eventsConfigured, callbacksConfigured, errors };
