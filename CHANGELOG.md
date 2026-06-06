@@ -5,6 +5,11 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 This is a private fork of [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge); upstream releases are listed below for traceability.
 
+## [0.1.21] - 2026-06-07
+
+### Changed
+- **Setup wizard now probes with `GET /bot/v3/info` instead of trying configure PATCHes.** The previous probe ran `configureBridgeApp(silent=true)` which PATCHes `/applications/{id}/base` — that endpoint requires the bare `application:application` scope (a privileged "manage applications" permission most users don't grant). Probe always failed, browser always popped, even on the "I'm reinstalling against an existing already-configured app" path the probe was supposed to optimize. New probe just GETs the bot info, which only needs `application:bot.basic_info:read` (already in the default manifest); if the bot answers, the app is published and we trust the user's prior config — no guide, no browser pops. Output: `✓ 应用已就绪（bot open_id=...）— 跳过权限导入与浏览器弹窗。`
+
 ## [0.1.20] - 2026-06-07
 
 ### Fixed

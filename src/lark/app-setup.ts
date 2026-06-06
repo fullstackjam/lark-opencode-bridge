@@ -155,6 +155,61 @@ export async function configureBridgeApp(opts: AppSetupOptions): Promise<AppSetu
   return { displayName, nameUpdated, eventsConfigured, callbacksConfigured, errors };
 }
 
+export interface AppReadyProbe {
+  ok: boolean;
+  /** Bot's open_id when the GET succeeded. Proves a tenant token could be issued AND the bot has basic-info read access — i.e. app is published with the bot enabled. */
+  botOpenId?: string;
+  /** Human-readable reason on failure (Feishu error message). */
+  reason?: string;
+}
+
+/**
+ * Low-cost readiness probe via `GET /open-apis/bot/v3/info`.
+ *
+ * Confirms three things in one call without needing the broader
+ * `application:application` scope that configure PATCH wants:
+ *   - tenant access token can be issued     (= app exists + secret valid)
+ *   - app is published                       (otherwise no token)
+ *   - bot is enabled and we have basic_info read scope
+ *
+ * It does NOT confirm event/callback subscription is on websocket — the
+ * bridge's own LarkChannel attempt later surfaces that. But for the common
+ * "I already set the app up, just don't pop browser tabs" path, this is the
+ * right signal: if the bot answers, we trust the user's prior config.
+ */
+export async function probeAppReady(opts: {
+  appId: string;
+  appSecret: string;
+  brand: "feishu" | "lark";
+}): Promise<AppReadyProbe> {
+  const client = createFeishuAppClient({
+    appId: opts.appId,
+    appSecret: opts.appSecret,
+    brand: opts.brand,
+    quiet: true,
+  });
+  try {
+    const res = await client.request<{
+      code?: number;
+      msg?: string;
+      bot?: { open_id?: string };
+    }>({
+      method: "GET",
+      url: `${client.domain}/open-apis/bot/v3/info`,
+    });
+    if (res.code !== 0) {
+      return { ok: false, reason: res.msg ?? `code=${res.code}` };
+    }
+    return { ok: true, botOpenId: res.bot?.open_id };
+  } catch (err) {
+    const e = err as { response?: { data?: { msg?: string; code?: number } }; message?: string };
+    const apiMsg = e?.response?.data?.msg;
+    const apiCode = e?.response?.data?.code;
+    if (apiMsg) return { ok: false, reason: `${apiMsg} (code=${apiCode ?? "?"})` };
+    return { ok: false, reason: e?.message ?? String(err) };
+  }
+}
+
 function patchViaLarkCli(
   bin: string,
   profile: string,

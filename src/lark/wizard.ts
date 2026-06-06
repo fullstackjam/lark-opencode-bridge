@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import qrcode from "qrcode-terminal";
 import { createLogger } from "../log.js";
 import { guideScopeImport } from "./scopes-setup.js";
-import { configureBridgeApp } from "./app-setup.js";
+import { configureBridgeApp, probeAppReady } from "./app-setup.js";
 import { saveBridgeSecret } from "./bridge-secrets.js";
 import { ensureLarkCli } from "./lark-cli-install.js";
 
@@ -116,28 +116,25 @@ export async function runSetupWizard(opts: SetupOptions = {}): Promise<SetupResu
     profile: profileName,
   });
 
-  // Probe first: if the existing app already has the right scopes granted +
-  // a published version, configure PATCHes succeed and we skip the noisy
-  // permission-import guide + browser pops. Common when reinstalling against
-  // an app that's already been set up.
+  // Probe: GET bot info. If it answers, the app is published and the bot is
+  // reachable — trust that the user has imported scopes + configured events,
+  // skip the permission-import guide + configure PATCH (which needs a wider
+  // scope than most users grant). If it doesn't answer (app not published /
+  // bot scope missing), fall back to walking the user through the guide.
   const normalizedBrand: "feishu" | "lark" = brand === "lark" ? "lark" : "feishu";
-  const probe = await configureBridgeApp({
-    appId,
-    appSecret,
-    brand: normalizedBrand,
-    ownerOpenId: result.user_info?.open_id,
-    silent: true,
-  });
+  process.stdout.write("\n正在检查应用是否已就绪…\n");
+  const probe = await probeAppReady({ appId, appSecret, brand: normalizedBrand });
 
-  if (probe.errors.length === 0) {
+  if (probe.ok) {
+    log.info(`app-ready probe ok appId=${appId} bot=${probe.botOpenId ?? "?"}`);
     process.stdout.write(
-      "\n✓ 应用权限、事件、回调已就绪（应用名称: " + probe.displayName + "），跳过权限导入步骤。\n",
+      `✓ 应用已就绪（bot open_id=${probe.botOpenId ?? "?"}）— 跳过权限导入与浏览器弹窗。\n`,
     );
     process.stdout.write("接下来运行: lark-opencode-bridge start\n\n");
   } else {
-    process.stdout.write("\n检测到应用配置尚需调整：\n");
-    for (const e of probe.errors) process.stdout.write(`  - ${e}\n`);
-    process.stdout.write("\n继续进入权限导入引导…\n");
+    log.info(`app-ready probe failed appId=${appId} reason=${probe.reason ?? "?"}`);
+    process.stdout.write(`✗ 应用尚未就绪：${probe.reason ?? "未知错误"}\n`);
+    process.stdout.write("继续进入权限导入引导…\n");
     await guideScopeImport(appId, normalizedBrand);
     await configureBridgeApp({
       appId,
