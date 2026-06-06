@@ -5,6 +5,11 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 This is a private fork of [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge); upstream releases are listed below for traceability.
 
+## [0.1.18] - 2026-06-06
+
+### Changed
+- **`start` waits for the bridge to actually register before declaring success or failure.** Old behavior: print "后台服务已启动 ✓", sleep 2.5s, check `processes.json` once, almost always print "⚠ bridge 进程未注册" because the daemon writes its pid only after opencode serve is up and the Lark WebSocket has connected (3–5s on a warm cache). New: poll `processes.json` every 500ms for up to 15s, then print either `✓ bridge 已就绪 (pid=N)` or `✗ 15 秒内 bridge 进程未注册` with diagnostic hints. `start` exits non-zero on the failure path, so it's now safely scriptable.
+
 ## [0.1.17] - 2026-06-06
 
 ### Fixed

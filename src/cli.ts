@@ -225,24 +225,36 @@ export async function runCli(argv: string[]): Promise<void> {
       }
       await ensureServiceStarted();
       const st = await getServiceStatus();
-      process.stdout.write(`后台服务已启动。\n${st.detail}\n`);
-      process.stdout.write(`日志: ${LOG_DIR}/\n`);
-      process.stdout.write(`  - ${LOG_DIR}/service.stderr.log（启动错误）\n`);
-      process.stdout.write(`  - ${LOG_DIR}/${new Date().toISOString().slice(0, 10)}.log（运行日志）\n`);
+      process.stdout.write(`${st.detail}\n`);
+      process.stdout.write(`正在等待 bridge 进程就绪 (最多 15s)…\n`);
 
-      await sleep(2500);
-      const procs = await listProcesses();
-      const alive = procs.some((p) => p.label === "run" && isAlive(p.pid));
-      if (!alive) {
+      // The daemon writes to processes.json only after opencode serve is up
+      // and the Lark WebSocket has connected — typically 3-5s on a warm cache.
+      // Poll instead of one-shot so a slow boot does not look like a failure.
+      const deadline = Date.now() + 15_000;
+      let alive: { pid: number } | undefined;
+      while (Date.now() < deadline) {
+        const procs = await listProcesses();
+        alive = procs.find((p) => p.label === "run" && isAlive(p.pid));
+        if (alive) break;
+        await sleep(500);
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      if (alive) {
+        process.stdout.write(
+          `\n✓ bridge 已就绪 (pid=${alive.pid})。私聊直接发消息；群里请 @ 机器人。\n`,
+        );
+        process.stdout.write(`日志: tail -f ${LOG_DIR}/${today}.log\n`);
+      } else {
         const tailHint =
           process.platform === "win32"
-            ? `  Get-Content -Tail 20 "${LOG_DIR}\\service.stderr.log"`
-            : `  tail -20 ${LOG_DIR}/service.stderr.log`;
+            ? `  Get-Content -Tail 30 "${LOG_DIR}\\service.stderr.log"`
+            : `  tail -30 ${LOG_DIR}/service.stderr.log`;
         process.stdout.write(
-          `\n⚠ bridge 进程未注册（可能 preflight 失败）。请运行:\n\n  lark-opencode-bridge doctor\n${tailHint}\n\n`,
+          `\n✗ 15 秒内 bridge 进程未注册（可能 preflight 失败或 daemon 启动出错）。请运行:\n\n  lark-opencode-bridge doctor\n${tailHint}\n\n`,
         );
-      } else {
-        process.stdout.write("\n✓ bridge 进程已就绪。私聊直接发消息；群里请 @ 机器人。\n");
+        process.exitCode = 1;
       }
       process.stdout.write(
         "\n提示: 后台命令需全局安装 (npm i -g @fullstackjam/lark-opencode-bridge)，勿用 npx。\n",
