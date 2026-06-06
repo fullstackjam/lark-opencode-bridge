@@ -19,6 +19,8 @@ export interface AttachmentRef {
 export interface AttachmentOptions {
   larkCliPath?: string;
   identity: "bot" | "user";
+  /** lark-cli profile to pin; without it lark-cli falls back to its currentApp. */
+  profile?: string;
 }
 
 export class LarkAttachmentFetcher {
@@ -86,6 +88,7 @@ export class LarkAttachmentFetcher {
       "--as",
       this.opts.identity,
     ];
+    if (this.opts.profile) args.unshift("--profile", this.opts.profile);
     const out = await run(this.opts.larkCliPath ?? "lark-cli", args);
     const json = safeJson(out);
     const msg = extractMessage(json);
@@ -123,6 +126,7 @@ export class LarkAttachmentFetcher {
       "--as",
       this.opts.identity,
     ];
+    if (this.opts.profile) args.unshift("--profile", this.opts.profile);
     await run(this.opts.larkCliPath ?? "lark-cli", args, cwd);
 
     const absPath = path.join(outDir, safeName);

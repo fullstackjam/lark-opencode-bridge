@@ -6,6 +6,8 @@ const log = createLogger("lark.chats");
 export interface ChatsOptions {
   identity: "bot" | "user";
   larkCliPath?: string;
+  /** lark-cli profile to pin; without it lark-cli falls back to its currentApp. */
+  profile?: string;
 }
 
 export interface CreateChatInput {
@@ -82,8 +84,9 @@ export class LarkChats {
 
   private run(args: string[]): Promise<string> {
     const bin = this.opts.larkCliPath ?? "lark-cli";
+    const argv = this.opts.profile ? ["--profile", this.opts.profile, ...args] : args;
     return new Promise((resolve, reject) => {
-      const proc = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
+      const proc = spawn(bin, argv, { stdio: ["ignore", "pipe", "pipe"] });
       const stdout: Buffer[] = [];
       const stderr: Buffer[] = [];
       proc.stdout.on("data", (c) => stdout.push(c));

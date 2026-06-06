@@ -189,6 +189,7 @@ export async function runCli(argv: string[]): Promise<void> {
         const pf = await runPreflight({
           larkCliPath: opts.larkCli,
           opencodePath: opts.opencode,
+          profile: cfg.larkProfile,
           installLarkCli: false,
         });
         if (!pf.ok) {
@@ -215,7 +216,8 @@ export async function runCli(argv: string[]): Promise<void> {
     .command("start")
     .description("Install (if needed) and start background daemon (macOS launchd / Linux systemd / Windows Task Scheduler)")
     .action(async () => {
-      if (!(await hasLarkAppConfigured())) {
+      const cfg = await loadConfig();
+      if (!(await hasLarkAppConfigured(cfg.larkProfile))) {
         process.stdout.write(
           "⚠ 尚未完成飞书应用绑定。请先在前台运行并完成扫码:\n\n  lark-opencode-bridge run\n\n",
         );
@@ -366,7 +368,11 @@ export async function runCli(argv: string[]): Promise<void> {
     .option("--opencode <path>", "override opencode binary path")
     .action(async (opts) => {
       const cfg = await loadConfig();
-      const pf = await runPreflight({ larkCliPath: opts.larkCli, opencodePath: opts.opencode });
+      const pf = await runPreflight({
+        larkCliPath: opts.larkCli,
+        opencodePath: opts.opencode,
+        profile: cfg.larkProfile,
+      });
       const lark = checkBinary(opts.larkCli ?? "lark-cli", ["--version"]);
       const opencode = checkBinary(opts.opencode ?? "opencode", ["--version"]);
       const authed = checkBinary(opts.larkCli ?? "lark-cli", ["auth", "list"]);
