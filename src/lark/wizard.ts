@@ -135,6 +135,9 @@ export async function runSetupWizard(opts: SetupOptions = {}): Promise<SetupResu
     );
     process.stdout.write("接下来运行: lark-opencode-bridge start\n\n");
   } else {
+    process.stdout.write("\n检测到应用配置尚需调整：\n");
+    for (const e of probe.errors) process.stdout.write(`  - ${e}\n`);
+    process.stdout.write("\n继续进入权限导入引导…\n");
     await guideScopeImport(appId, normalizedBrand);
     await configureBridgeApp({
       appId,

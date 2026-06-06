@@ -138,6 +138,7 @@ export const DEFAULT_SETUP_SCOPES: ScopeManifest = {
       "wiki:space:write_only",
       "wiki:wiki",
       "wiki:wiki:readonly",
+      "application:application",
       "application:application.app_version:readonly",
       "application:application:patch",
       "application:application:self_manage",

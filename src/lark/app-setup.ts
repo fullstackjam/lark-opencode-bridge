@@ -146,6 +146,12 @@ export async function configureBridgeApp(opts: AppSetupOptions): Promise<AppSetu
     }
   }
 
+  if (silent) {
+    log.info(
+      `probe app=${opts.appId} name=${nameUpdated ? "ok" : "fail"} events=${eventsConfigured ? "ok" : "fail"} callbacks=${callbacksConfigured ? "ok" : "fail"} errors=${errors.length}`,
+    );
+  }
+
   return { displayName, nameUpdated, eventsConfigured, callbacksConfigured, errors };
 }
 

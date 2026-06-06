@@ -5,6 +5,15 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 This is a private fork of [YMaxwellHayes/lark-opencode-bridge](https://github.com/YMaxwellHayes/lark-opencode-bridge); upstream releases are listed below for traceability.
 
+## [0.1.20] - 2026-06-07
+
+### Fixed
+- **Recommended scopes were missing `application:application`** — the configure auto-rename / events / callback PATCHes hit `/open-apis/application/v7/applications/{id}/base` which requires the bare `application:application` scope (or `admin:app.category:update`). Our manifest only included the narrower `application:application:self_manage` + `:patch` variants, so configure ALWAYS got `99991672 Access denied` and the silent probe added in 0.1.19 ALWAYS fell back to the permission-import guide. With this scope added, a fully-imported-and-published app passes the probe and the guide is correctly skipped on reinstall.
+
+### Changed
+- **Wizard prints probe errors before the fallback guide** — so when probe fails for a real reason (e.g. scope still missing in published version), you see the exact API error message rather than just `✗ 应用名称更新失败` followed by a browser pop.
+- Silent probe writes a structured log line (`probe app=... name=... events=... callbacks=...`) so reasons stay diagnosable after the fact.
+
 ## [0.1.19] - 2026-06-07
 
 ### Changed
